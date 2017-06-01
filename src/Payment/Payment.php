@@ -56,25 +56,59 @@ class Payment implements IPayment
         $state
     )
     {
-        $createdValid = ($created instanceof \DateTimeInterface);
-        if (!$createdValid) {
-            throw new \InvalidArgumentException("Field Created at is of invalid type");
-        }
+        $this->validateInput($amount, $taxAmount, $paymentId);
+        $this->assignProperties(
+            $paymentId,
+            $created,
+            $updated,
+            $isTest,
+            $currency,
+            $amount,
+            $taxAmount,
+            $state
+        );
 
-        $isTestType = gettype($isTest);
-        if ($isTestType !== 'boolean') {
-            throw new \InvalidArgumentException("Wrong type provided for isType
-            variable: boolean expected, $isTestType given");
-        }
+    }
 
+    private function assignProperties(
+        $paymentId,
+        $created,
+        $updated,
+        $isTest,
+        $currency,
+        $amount,
+        $taxAmount,
+        $state
+    )
+    {
         $this->paymentId = $paymentId;
-        $this->created = $created;
-        $this->updated = $updated;
+        $this->created = clone $created;
+        $this->updated = clone $updated;
         $this->isTest = $isTest;
         $this->currency = $currency;
         $this->amount = $amount;
         $this->taxAmount = $taxAmount;
         $this->state = $state;
+
+    }
+
+    private function validateInput($amount, $taxAmount, $paymentId)
+    {
+        $amountIsValid = ($amount >= 0);
+        if (!$amountIsValid) {
+            throw new \InvalidArgumentException("Amount is negative");
+        }
+
+        $taxAmountIsValid = ($taxAmount >= 0);
+        if (!$taxAmountIsValid) {
+            throw new \InvalidArgumentException("Tax amount is negative");
+        }
+
+        $paymentIdIsValid = (strlen($paymentId) > 0);
+        if (!$paymentIdIsValid) {
+            throw new \InvalidArgumentException("Payment id is invalid");
+        }
+
     }
 
     public function getId(): string
