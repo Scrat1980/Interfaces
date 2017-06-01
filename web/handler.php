@@ -6,21 +6,27 @@ require_once __DIR__ . '/../src/Test/Test.php';
 
 echo 'ОК ' . file_get_contents('php://input');
 
-echo '<br>';
 
-$client = new MongoDB\Client("mongodb://localhost:27017");
 
-$collection = $client->db->personnel;
+$test = new MyTest();
+var_dump($test);
 
-$id = (string) new MongoDB\BSON\ObjectID();
-const AMOUNT = 5;
-$test = new MyTest( AMOUNT, $id );
-$testStatic = MyTest::instance( AMOUNT, $id );
-var_dump( $testStatic );
-echo $testStatic->getId();
-echo '<br>';
-echo $testStatic->getAmount();
-die;
+
+//echo '<br>';
+//
+//$client = new MongoDB\Client("mongodb://localhost:27017");
+//
+//$collection = $client->db->personnel;
+//
+//$id = (string) new MongoDB\BSON\ObjectID();
+//const AMOUNT = 5;
+//$test = new MyTest( AMOUNT, $id );
+//$testStatic = MyTest::instance( AMOUNT, $id );
+//var_dump( $testStatic );
+//echo $testStatic->getId();
+//echo '<br>';
+//echo $testStatic->getAmount();
+//die;
 
 //$person = [
 //    'name' => 'Jack',
@@ -31,15 +37,15 @@ die;
 //$person->name = 'John';
 //$person->age = 27;
 
-$collection->insertOne( $test );
-
-
-
-$resultFind = $collection->find( $test );
-//var_dump( $resultFind );
-foreach ($resultFind as $item) {
-    var_dump( $item );
-}
+//$collection->insertOne( $test );
+//
+//
+//
+//$resultFind = $collection->find( $test );
+////var_dump( $resultFind );
+//foreach ($resultFind as $item) {
+//    var_dump( $item );
+//}
 //die;
 
 
