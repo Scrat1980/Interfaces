@@ -37,7 +37,7 @@ class Db
         return self::$instance;
     }
 
-    public function get_collection($name){
+    public function getCollection($name){
         return $this->databse->selectCollection($name);
     }
 
