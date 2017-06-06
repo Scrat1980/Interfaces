@@ -17,12 +17,13 @@ use Playkot\PhpTestTask\Storage\Exception\NotFound;
 
 class Storage implements IStorage
 {
-    private $collection;
+    public $collection;
+    public $db;
 
     public function __construct()
     {
-        $db = new Db();
-        $this->collection = $db->getCollection('paymentsCollection');
+        $this->db = new Db();
+        $this->collection = Db::COLLECTION;
     }
 
     /**
@@ -38,8 +39,6 @@ class Storage implements IStorage
 
     public function save(IPayment $payment): IStorage
     {
-//        $this->collection->drop();
-
         $paymentId = $payment->paymentId;
 
         if($this->has($paymentId)) {
@@ -47,61 +46,58 @@ class Storage implements IStorage
             $this->remove($paymentToDelete);
         }
 
-        $this->collection->insertOne($payment);
+        $bulk = new \MongoDB\Driver\BulkWrite();
+        $bulk->insert($payment);
+        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
+        $result = $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
 
         return $this;
     }
 
     public function has(string $paymentId): bool
     {
-        return (count($this->getPaymentArray($paymentId))>0);
-    }
+        $cursor = $this->getQueryResult($paymentId);
 
-    public function get(string $paymentId): IPayment
-    {
-        $paymentArray = $this->getPaymentArray($paymentId);
-
-        try {
-
-            if (count($paymentArray) > 0) {
-                $outputPayment = new Payment(
-                    $paymentArray['paymentId'],
-                    $paymentArray['created'],
-                    $paymentArray['updated'],
-                    $paymentArray['isTest'],
-                    $paymentArray['currency'],
-                    $paymentArray['amount'],
-                    $paymentArray['taxAmount'],
-                    $paymentArray['state']
-                );
-            } else {
-                throw new NotFound('Trying to get not existing payment');
-            }
-        } catch (Exception $e) {
-            echo 'Caught exception';
-        }
-
-        return $outputPayment;
+        return (count($cursor)>0);
     }
 
     public function remove(IPayment $payment): IStorage
     {
-        $this->collection->deleteOne($payment);
-//        remove(['paymentId' => $payment->getId()]);
+        $bulk = new \MongoDB\Driver\BulkWrite();
+        $paymentId = $payment->paymentId;
+        $bulk->delete([$paymentId]);
+        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
+        $result = $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
+
         return $this;
     }
 
-    private function getPaymentArray(string $paymentId): array
+    public function get(string $paymentId): IPayment
     {
-        $searchObject = new \stdClass();
-        $searchObject->paymentId = $paymentId;
-        $payment = $this->collection->findOne($searchObject);
-        if($payment) {
-            $paymentArray = iterator_to_array($payment);
+        $cursor = $this->getQueryResult($paymentId);
+
+        if (count($cursor)>0) {
+            $paymentRecord = $cursor[0];
+            unset($paymentRecord->_id);
+//            $payment = new Payment(
+//                $paymentRecord
+//            );
         } else {
-            $paymentArray = [];
+            throw new \NotFound();
         }
 
-        return $paymentArray;
+        return $paymentRecord;
+    }
+
+    private function getQueryResult($paymentId)
+    {
+        $filter = [ 'paymentId' => $paymentId ];
+        $query = new \MongoDB\Driver\Query($filter);
+        $cursor = $this->db->manager->executeQuery($this->collection, $query);
+
+        var_dump($cursor->toArray()[0]);
+
+        $paymentsArray = $cursor->toArray();
+        return $paymentsArray;
     }
 }

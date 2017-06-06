@@ -14,26 +14,76 @@ use Playkot\PhpTestTask\Storage\Storage;
 echo 'ОК ' . file_get_contents('php://input');
 
 
-$i = 2;
-
-$paymentId = 'payment_' . $i;
-
-$payment = Payment::instance(
-    $paymentId,
-    new \DateTime('2017-01-02 03:04:05'),
-    new \DateTime('2017-02-03 04:05:06'),
-    $i % 2 ? true : false,
-    Currency::get(Currency::USD),
-    14.55 * $i,
-    1.34 * $i,
-    State::get((int)($i % 4))
-);
-
-//var_dump($payment);
+//function showPayments($storage)
+//{
+//    $paymentsIterator = $storage->collection->find();
+//    $payments = iterator_to_array($paymentsIterator);
+//    var_dump($payments);
+//}
 
 $storage = Storage::instance();
-$storage = $storage->save($payment);
-var_dump($storage->get($paymentId));
+for ($i = 1; $i <= 1; $i++) {
+
+    $paymentId = 'payment_' . $i;
+
+    $payment = Payment::instance(
+        $paymentId,
+        new \DateTime('2017-01-02 03:04:05'),
+        new \DateTime('2017-02-03 04:05:06'),
+        $i % 2 ? true : false,
+        Currency::get(Currency::USD),
+        14.55 * $i,
+        1.34 * $i,
+        State::get((int)($i % 4))
+    );
+
+    $storage->save($payment);
+}
+
+die;
+//var_dump($storage->get('payment_1'));
+//var_dump($payment);
+//var_dump($payment == $storage->get('payment_1'));
+
+
+$bulk = new MongoDB\Driver\BulkWrite();
+//$bulk->insert(['_id' => 1, 'x' => 1]);
+$bulk->insert(['x' => 1, 'y' => 'foo']);
+$bulk->insert(['x' => 2, 'y' => 'bar']);
+$bulk->insert(['x' => 3, 'y' => 'bar']);
+
+
+$manager = new MongoDB\Driver\Manager("mongodb://localhost:27017");
+//var_dump($manager);
+
+$writeConcern = new MongoDB\Driver\WriteConcern(MongoDB\Driver\WriteConcern::MAJORITY, 100);
+$manager->executeBulkWrite('db.collection', $bulk, $writeConcern);
+
+//var_dump($result->getUpsertedIds());
+
+//$filter = ['x' => ['$gt' => 1]];
+$filter = [];
+$options = [
+    'projection' => ['_id' => 0],
+    'sort' => ['x' => -1]
+];
+
+$query = new MongoDB\Driver\Query($filter, $options);
+$cursor = $manager->executeQuery('db.collection', $query);
+
+//var_dump($cursor);
+
+foreach ($cursor as $document) {
+    var_dump($document);
+}
+
+
+
+
+
+
+
+
 
 
 

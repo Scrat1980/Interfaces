@@ -13,32 +13,27 @@ class Db
 {
     const DB_HOST = 'localhost';
     const DB_PORT = 27017;
-    const DB_NAME = 'payments_storage';
+    const COLLECTION = 'db.payments_storage';
 
     private static $instance;
-    public $connection;
-    public $databse;
+    public $manager;
+//    public $database;
 
     public function __construct() {
         $connectionString = "mongodb://" . self::DB_HOST . ":" . self::DB_PORT;
-        try {
-            $this->connection = new \MongoDB\Client($connectionString);
-            $this->databse = $this->connection->{self::DB_NAME};
-        } catch (MongoConnectionException $e) {
-            throw $e;
-        }
+        $this->manager = new \MongoDB\Driver\Manager($connectionString);
     }
 
-    static public function instantiate(){
-        if(!isset(self::$instance)){
-            $class = __CLASS__;
-            self::$instance = new $class;
-        }
-        return self::$instance;
-    }
-
-    public function getCollection($name){
-        return $this->databse->selectCollection($name);
-    }
+//    static public function instantiate(){
+//        if(!isset(self::$instance)){
+//            $class = __CLASS__;
+//            self::$instance = new $class;
+//        }
+//        return self::$instance;
+//    }
+//
+//    public function getCollection($name){
+//        return $this->database->selectCollection($name);
+//    }
 
 }
