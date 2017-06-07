@@ -14,62 +14,84 @@ use Playkot\PhpTestTask\Storage\Storage;
 echo 'ОК ' . file_get_contents('php://input');
 
 
-//function showPayments($storage)
-//{
-//    $paymentsIterator = $storage->collection->find();
-//    $payments = iterator_to_array($paymentsIterator);
-//    var_dump($payments);
-//}
 
-$storage = Storage::instance();
-for ($i = 1; $i <= 1; $i++) {
+$collection = (new MongoDB\Client)->example->users;
 
-    $paymentId = 'payment_' . $i;
-
-    $payment = Payment::instance(
-        $paymentId,
-        new \DateTime('2017-01-02 03:04:05'),
-        new \DateTime('2017-02-03 04:05:06'),
-        $i % 2 ? true : false,
-        Currency::get(Currency::USD),
-        14.55 * $i,
-        1.34 * $i,
-        State::get((int)($i % 4))
-    );
-
-    $storage->save($payment);
+class MyClass {
+    public $userName = 'admin';
+    public $email = 'admin@example.com';
+    public $name = 'John';
 }
 
-die;
-//var_dump($storage->get('payment_1'));
-//var_dump($payment);
-//var_dump($payment == $storage->get('payment_1'));
+$collection->deleteMany([]);
+$object = new MyClass();
+$serializedObject = serialize($object);
 
+$insertOneResult = $collection->insertOne([$serializedObject]);
+
+//printf("Inserted %d document(s)\n", $insertOneResult->getInsertedCount());
+
+$result = $collection->find();
+
+foreach ($result as $item) {
+    var_dump(unserialize($item[0]));
+
+}
+die;
+
+
+
+//$storage = Storage::instance();
+//for ($i = 1; $i <= 1; $i++) {
+//
+//    $paymentId = 'payment_' . $i;
+//
+//    $payment = Payment::instance(
+//        $paymentId,
+//        new \DateTime('2017-01-02 03:04:05'),
+//        new \DateTime('2017-02-03 04:05:06'),
+//        $i % 2 ? true : false,
+//        Currency::get(Currency::USD),
+//        14.55 * $i,
+//        1.34 * $i,
+//        State::get((int)($i % 4))
+//    );
+//
+//    $storage->save($payment);
+//}
+
+
+
+//var_dump($storage->get('payment_1'));
+//die;
+
+class MyClass {
+    public $property1;
+}
 
 $bulk = new MongoDB\Driver\BulkWrite();
-//$bulk->insert(['_id' => 1, 'x' => 1]);
-$bulk->insert(['x' => 1, 'y' => 'foo']);
-$bulk->insert(['x' => 2, 'y' => 'bar']);
-$bulk->insert(['x' => 3, 'y' => 'bar']);
+
+$object = new MyClass();
+$object->property1 = 0;
+
+$bulk->insert(['1' => $object]);
+//$bulk->insert(['x' => 2, 'y' => 'bar']);
+//$bulk->insert(['x' => 3, 'y' => 'bar']);
 
 
 $manager = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 //var_dump($manager);
 
 $writeConcern = new MongoDB\Driver\WriteConcern(MongoDB\Driver\WriteConcern::MAJORITY, 100);
-$manager->executeBulkWrite('db.collection', $bulk, $writeConcern);
+$manager->executeBulkWrite('db.testCollection', $bulk, $writeConcern);
 
 //var_dump($result->getUpsertedIds());
 
 //$filter = ['x' => ['$gt' => 1]];
 $filter = [];
-$options = [
-    'projection' => ['_id' => 0],
-    'sort' => ['x' => -1]
-];
 
-$query = new MongoDB\Driver\Query($filter, $options);
-$cursor = $manager->executeQuery('db.collection', $query);
+$query = new MongoDB\Driver\Query($filter/*, $options*/);
+$cursor = $manager->executeQuery('db.testCollection', $query);
 
 //var_dump($cursor);
 

@@ -12,7 +12,7 @@ namespace Playkot\PhpTestTask\Storage;
 use Playkot\PhpTestTask\Payment\IPayment;
 use Playkot\PhpTestTask\Db\Db;
 use Playkot\PhpTestTask\Payment\Payment;
-use Playkot\PhpTestTask\Storage\Exception\NotFound;
+use Playkot\PhpTestTask\Storage\Exception;
 //use Playkot\PhpTestTask\Storage\Exception\Payment;
 
 class Storage implements IStorage
@@ -24,6 +24,15 @@ class Storage implements IStorage
     {
         $this->db = new Db();
         $this->collection = Db::COLLECTION;
+
+        $bulk = new \MongoDB\Driver\BulkWrite();
+        $bulk->delete([]);
+        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
+        $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
+
+
+//        var_dump($this->db);
+//        die;
     }
 
     /**
@@ -48,8 +57,15 @@ class Storage implements IStorage
 
         $bulk = new \MongoDB\Driver\BulkWrite();
         $bulk->insert($payment);
-        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
-        $result = $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
+        $writeConcern = new \MongoDB\Driver\WriteConcern(
+            \MongoDB\Driver\WriteConcern::MAJORITY,
+            1000
+        );
+        $this->db->manager->executeBulkWrite(
+            $this->collection,
+            $bulk,
+            $writeConcern
+        );
 
         return $this;
     }
@@ -66,8 +82,15 @@ class Storage implements IStorage
         $bulk = new \MongoDB\Driver\BulkWrite();
         $paymentId = $payment->paymentId;
         $bulk->delete([$paymentId]);
-        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
-        $result = $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
+        $writeConcern = new \MongoDB\Driver\WriteConcern(
+            \MongoDB\Driver\WriteConcern::MAJORITY,
+            1000
+        );
+        $this->db->manager->executeBulkWrite(
+            $this->collection,
+            $bulk,
+            $writeConcern
+        );
 
         return $this;
     }
@@ -78,15 +101,24 @@ class Storage implements IStorage
 
         if (count($cursor)>0) {
             $paymentRecord = $cursor[0];
-            unset($paymentRecord->_id);
-//            $payment = new Payment(
-//                $paymentRecord
-//            );
+
+            var_dump($paymentRecord);
+            die;
+            $payment = Payment::instance(
+                $paymentRecord->paymentId,
+                $paymentRecord->created,
+                $paymentRecord->updated,
+                $paymentRecord->isTest,
+                $paymentRecord->currency,
+                $paymentRecord->amount,
+                $paymentRecord->taxAmount,
+                $paymentRecord->state
+            );
         } else {
-            throw new \NotFound();
+            throw new Exception\NotFound;
         }
 
-        return $paymentRecord;
+        return $payment;
     }
 
     private function getQueryResult($paymentId)
@@ -95,9 +127,8 @@ class Storage implements IStorage
         $query = new \MongoDB\Driver\Query($filter);
         $cursor = $this->db->manager->executeQuery($this->collection, $query);
 
-        var_dump($cursor->toArray()[0]);
-
         $paymentsArray = $cursor->toArray();
+
         return $paymentsArray;
     }
 }
