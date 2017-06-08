@@ -10,29 +10,21 @@ namespace Playkot\PhpTestTask\Storage;
 
 
 use Playkot\PhpTestTask\Payment\IPayment;
-use Playkot\PhpTestTask\Db\Db;
-use Playkot\PhpTestTask\Payment\Payment;
 use Playkot\PhpTestTask\Storage\Exception;
-//use Playkot\PhpTestTask\Storage\Exception\Payment;
 
 class Storage implements IStorage
 {
     public $collection;
-    public $db;
 
+    /**
+     * Создаём коллкцию. Очищаем.
+     *
+     * Storage constructor.
+     */
     public function __construct()
     {
-        $this->db = new Db();
-        $this->collection = Db::COLLECTION;
-
-        $bulk = new \MongoDB\Driver\BulkWrite();
-        $bulk->delete([]);
-        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
-        $this->db->manager->executeBulkWrite($this->collection, $bulk, $writeConcern);
-
-
-//        var_dump($this->db);
-//        die;
+        $this->collection = (new \MongoDB\Client)->storage->payments;
+        $this->collection->drop();
     }
 
     /**
@@ -46,89 +38,85 @@ class Storage implements IStorage
         return new self;
     }
 
+    /**
+     * Сериализуем объект платежа и храним его с ключом $paymentId
+     *
+     * @param IPayment $payment
+     * @return IStorage
+     */
     public function save(IPayment $payment): IStorage
     {
-        $paymentId = $payment->paymentId;
+        $filter = ['paymentId' => $payment->paymentId];
+        $replacement = [
+            'paymentId' => $payment->paymentId,
+            'payment' => serialize($payment)
+        ];
+        $options = ['upsert' => true];
 
-        if($this->has($paymentId)) {
-            $paymentToDelete = $this->get($paymentId);
-            $this->remove($paymentToDelete);
-        }
-
-        $bulk = new \MongoDB\Driver\BulkWrite();
-        $bulk->insert($payment);
-        $writeConcern = new \MongoDB\Driver\WriteConcern(
-            \MongoDB\Driver\WriteConcern::MAJORITY,
-            1000
-        );
-        $this->db->manager->executeBulkWrite(
-            $this->collection,
-            $bulk,
-            $writeConcern
+        $this->collection->findOneAndReplace(
+            $filter,
+            $replacement,
+            $options
         );
 
         return $this;
     }
 
+    /**
+     * Проверка на существование платежа
+     *
+     * @param string $paymentId
+     * @return bool
+     */
     public function has(string $paymentId): bool
     {
-        $cursor = $this->getQueryResult($paymentId);
+        $record = $this->getRecord($paymentId);
 
-        return (count($cursor)>0);
+        return ! is_null($record);
     }
 
+    /**
+     * Удаление платежа
+     *
+     * @param IPayment $payment
+     * @return IStorage
+     */
     public function remove(IPayment $payment): IStorage
     {
-        $bulk = new \MongoDB\Driver\BulkWrite();
-        $paymentId = $payment->paymentId;
-        $bulk->delete([$paymentId]);
-        $writeConcern = new \MongoDB\Driver\WriteConcern(
-            \MongoDB\Driver\WriteConcern::MAJORITY,
-            1000
-        );
-        $this->db->manager->executeBulkWrite(
-            $this->collection,
-            $bulk,
-            $writeConcern
-        );
+        $filter = ['paymentId' => $payment->paymentId];
+        $this->collection->deleteOne($filter);
 
         return $this;
     }
 
+    /**
+     * Получение платежа
+     *
+     * @param string $paymentId
+     * @return IPayment
+     * @throws Exception\NotFound
+     */
     public function get(string $paymentId): IPayment
     {
-        $cursor = $this->getQueryResult($paymentId);
-
-        if (count($cursor)>0) {
-            $paymentRecord = $cursor[0];
-
-            var_dump($paymentRecord);
-            die;
-            $payment = Payment::instance(
-                $paymentRecord->paymentId,
-                $paymentRecord->created,
-                $paymentRecord->updated,
-                $paymentRecord->isTest,
-                $paymentRecord->currency,
-                $paymentRecord->amount,
-                $paymentRecord->taxAmount,
-                $paymentRecord->state
-            );
+        $record = $this->getRecord($paymentId);
+        if(isset($record['payment'])) {
+            return unserialize($record['payment']);
         } else {
             throw new Exception\NotFound;
         }
 
-        return $payment;
     }
 
-    private function getQueryResult($paymentId)
+    /**
+     * Общая часть get и has: делает запрос в базу и возвращает результат
+     *
+     * @param $paymentId
+     * @return array|null|object
+     */
+    private function getRecord($paymentId)
     {
-        $filter = [ 'paymentId' => $paymentId ];
-        $query = new \MongoDB\Driver\Query($filter);
-        $cursor = $this->db->manager->executeQuery($this->collection, $query);
+        $filter = ['paymentId' => $paymentId];
 
-        $paymentsArray = $cursor->toArray();
-
-        return $paymentsArray;
+        return $this->collection->findOne($filter);
     }
 }
