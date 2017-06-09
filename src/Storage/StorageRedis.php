@@ -14,17 +14,18 @@ use Playkot\PhpTestTask\Storage\Exception;
 
 class Storage implements IStorage
 {
-    public $collection;
+    private $redis;
 
     /**
-     * Создаём коллкцию. Очищаем.
+     * Создаем подключение, очищаем базу
      *
      * Storage constructor.
      */
     public function __construct()
     {
-        $this->collection = (new \MongoDB\Client)->storage->payments;
-        $this->collection->drop();
+        $this->redis = new \Redis();
+        $this->redis->connect('localhost', 6379);
+        $this->redis->flushDb();
     }
 
     /**
@@ -39,25 +40,18 @@ class Storage implements IStorage
     }
 
     /**
-     * Сериализуем объект платежа и храним его с ключом $paymentId
+     * Сохранение платежа
      *
      * @param IPayment $payment
      * @return IStorage
      */
     public function save(IPayment $payment): IStorage
     {
-        $filter = ['paymentId' => $payment->paymentId];
-        $replacement = [
-            'paymentId' => $payment->paymentId,
-            'payment' => serialize($payment)
-        ];
-        $options = ['upsert' => true];
+        if($this->has($payment->paymentId)){
+            $this->remove($payment);
+        }
 
-        $this->collection->findOneAndReplace(
-            $filter,
-            $replacement,
-            $options
-        );
+        $this->redis->set($payment->paymentId, serialize($payment));
 
         return $this;
     }
@@ -70,9 +64,7 @@ class Storage implements IStorage
      */
     public function has(string $paymentId): bool
     {
-        $record = $this->getRecord($paymentId);
-
-        return ! is_null($record);
+        return (bool) $this->redis->get($paymentId);
     }
 
     /**
@@ -83,8 +75,7 @@ class Storage implements IStorage
      */
     public function remove(IPayment $payment): IStorage
     {
-        $filter = ['paymentId' => $payment->paymentId];
-        $this->collection->deleteOne($filter);
+        $this->redis->delete($payment->paymentId);
 
         return $this;
     }
@@ -98,25 +89,12 @@ class Storage implements IStorage
      */
     public function get(string $paymentId): IPayment
     {
-        $record = $this->getRecord($paymentId);
-        if(isset($record['payment'])) {
-            return unserialize($record['payment']);
+        if($this->has($paymentId)){
+            return unserialize($this->redis->get($paymentId));
         } else {
             throw new Exception\NotFound;
         }
 
     }
 
-    /**
-     * Общая часть get и has: делает запрос в базу и возвращает результат
-     *
-     * @param $paymentId
-     * @return array|null|object
-     */
-    private function getRecord($paymentId)
-    {
-        $filter = ['paymentId' => $paymentId];
-
-        return $this->collection->findOne($filter);
-    }
 }
