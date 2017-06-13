@@ -111,41 +111,81 @@ class Payment implements IPayment
 
     }
 
+    /**
+     * Идентификатор платежа
+     *
+     * @return string
+     */
     public function getId(): string
     {
         return $this->paymentId;
     }
 
+    /**
+     * Дата создания платежа
+     *
+     * @return \DateTimeInterface
+     */
     public function getCreated(): \DateTimeInterface
     {
         return $this->created;
     }
 
+    /**
+     * Дата последнего обновления платежа
+     *
+     * @return \DateTimeInterface
+     */
     public function getUpdated(): \DateTimeInterface
     {
         return $this->updated;
     }
 
+    /**
+     * Признак тестового платежа
+     *
+     * @return bool
+     */
     public function isTest(): bool
     {
         return $this->isTest;
     }
 
+    /**
+     * Валюта платежа
+     *
+     * @return Currency
+     */
     public function getCurrency(): Currency
     {
         return $this->currency;
     }
 
+    /**
+     * Сумма платежа включая сумму налога
+     *
+     * @return float
+     */
     public function getAmount(): float
     {
         return $this->amount;
     }
 
+    /**
+     * Сумма налога от платежа
+     *
+     * @return float
+     */
     public function getTaxAmount(): float
     {
         return $this->taxAmount;
     }
 
+    /**
+     * Идентификатор состояния платежа
+     *
+     * @return State
+     */
     public function getState(): State
     {
         return $this->state;
