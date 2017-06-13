@@ -13,14 +13,14 @@ use PHPUnit\Framework\Constraint\IsInstanceOf;
 
 class Payment implements IPayment
 {
-    public $paymentId;
-    public $created;
-    public $updated;
-    public $isTest;
-    public $currency;
-    public $amount;
-    public $taxAmount;
-    public $state;
+    private $paymentId;
+    private $created;
+    private $updated;
+    private $isTest;
+    private $currency;
+    private $amount;
+    private $taxAmount;
+    private $state;
 
     public static function instance(
         string                  $paymentId,

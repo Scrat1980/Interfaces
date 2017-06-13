@@ -46,9 +46,9 @@ class Storage implements IStorage
      */
     public function save(IPayment $payment): IStorage
     {
-        $filter = ['paymentId' => $payment->paymentId];
+        $filter = ['paymentId' => $payment->getId()];
         $replacement = [
-            'paymentId' => $payment->paymentId,
+            'paymentId' => $payment->getId(),
             'payment' => serialize($payment)
         ];
         $options = ['upsert' => true];
@@ -83,7 +83,7 @@ class Storage implements IStorage
      */
     public function remove(IPayment $payment): IStorage
     {
-        $filter = ['paymentId' => $payment->paymentId];
+        $filter = ['paymentId' => $payment->getId()];
         $this->collection->deleteOne($filter);
 
         return $this;
