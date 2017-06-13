@@ -47,11 +47,13 @@ class Storage implements IStorage
      */
     public function save(IPayment $payment): IStorage
     {
-        if($this->has($payment->paymentId)){
+        if($this->has($payment->getId())){
             $this->remove($payment);
         }
 
-        $this->redis->set($payment->paymentId, serialize($payment));
+        $payment->setUpdated(new \DateTime());
+
+        $this->redis->set($payment->getId(), serialize($payment));
 
         return $this;
     }
@@ -75,7 +77,7 @@ class Storage implements IStorage
      */
     public function remove(IPayment $payment): IStorage
     {
-        $this->redis->delete($payment->paymentId);
+        $this->redis->delete($payment->getId());
 
         return $this;
     }

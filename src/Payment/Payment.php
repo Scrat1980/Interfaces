@@ -141,6 +141,11 @@ class Payment implements IPayment
         return $this->updated;
     }
 
+    public function setUpdated(\DateTime $date)
+    {
+        $this->updated = $date;
+    }
+
     /**
      * Признак тестового платежа
      *

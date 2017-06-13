@@ -47,6 +47,9 @@ class Storage implements IStorage
     public function save(IPayment $payment): IStorage
     {
         $filter = ['paymentId' => $payment->getId()];
+
+        $payment->setUpdated(new \DateTime());
+
         $replacement = [
             'paymentId' => $payment->getId(),
             'payment' => serialize($payment)
